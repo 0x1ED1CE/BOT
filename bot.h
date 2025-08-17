@@ -1,10 +1,35 @@
+/*
+MIT License
+
+Copyright (c) 2025 Dice
+
+Permission is hereby granted, free of charge, to any person obtaining a copy 
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+*/
+
 #ifndef BOT_H
 #define BOT_H
 
 #define BOT_VERSION_MAJOR 1
-#define BOT_VERSION_MINOR 2
-#define BOT_VERSION_PATCH 0
+#define BOT_VERSION_MINOR 3
+#define BOT_VERSION_PATCH 2
 
+#define BOT_OP_NOP 0x00 // NO OPERATION
 #define BOT_OP_INT 0x01 // INTERRUPT
 #define BOT_OP_NUM 0x10 // INTEGER
 #define BOT_OP_JMP 0x20 // JUMP
@@ -17,34 +42,20 @@
 #define BOT_OP_POS 0x31 // GET STACK COUNTER
 #define BOT_OP_SET 0x32 // SET ADDRESS VALUE
 #define BOT_OP_GET 0x33 // GET ADDRESS VALUE
-#define BOT_OP_DUP 0x34 // DUPLICATE STACK VALUE
-#define BOT_OP_POP 0x35 // POP STACK VALUE
-#define BOT_OP_ROT 0x36 // ROTATE VALUES
+#define BOT_OP_POP 0x34 // POP STACK VALUE
+#define BOT_OP_ROT 0x35 // ROTATE VALUES
 #define BOT_OP_ADD 0x40 // INTEGER ADD
 #define BOT_OP_SUB 0x41 // INTEGER SUBTRACT
 #define BOT_OP_MUL 0x42 // INTEGER MULTIPLY
 #define BOT_OP_DIV 0x43 // INTEGER DIVIDE
-#define BOT_OP_POW 0x44 // INTEGER POWER
-#define BOT_OP_MOD 0x45 // INTEGER MODULO
+#define BOT_OP_MOD 0x44 // INTEGER MODULO
+#define BOT_OP_MIN 0x45 // INTEGER MIN
 #define BOT_OP_NOT 0x50 // BITWISE NOT
 #define BOT_OP_AND 0x51 // BITWISE AND
 #define BOT_OP_BOR 0x52 // BITWISE OR
 #define BOT_OP_XOR 0x53 // BITWISE XOR
 #define BOT_OP_LSH 0x54 // BITWISE LEFT SHIFT
 #define BOT_OP_RSH 0x55 // BITWISE RIGHT SHIFT
-#define BOT_OP_FPU 0x60 // FLOAT
-#define BOT_OP_FTU 0x70 // FLOAT TO INTEGER
-#define BOT_OP_UTF 0x71 // FLOAT FROM INTEGER
-#define BOT_OP_FEQ 0x72 // FLOAT COMPARE IF EQUAL
-#define BOT_OP_FNE 0x73 // FLOAT COMPARE IF NOT EQUAL
-#define BOT_OP_FLS 0x74 // FLOAT COMPARE IF LESS THAN
-#define BOT_OP_FLE 0x75 // FLOAT COMPARE IF LESS OR EQUAL
-#define BOT_OP_FAD 0x80 // FLOAT ADD
-#define BOT_OP_FSU 0x81 // FLOAT SUBTRACT
-#define BOT_OP_FMU 0x82 // FLOAT MULTIPLY
-#define BOT_OP_FDI 0x83 // FLOAT DIVIDE
-#define BOT_OP_FPO 0x84 // FLOAT POWER
-#define BOT_OP_FMO 0x85 // FLOAT MODULO
 
 #define BOT_INT_NONE              0x00
 #define BOT_INT_END_OF_PROGRAM    0x01
@@ -53,29 +64,24 @@
 #define BOT_INT_OUT_OF_BOUNDS     0x04
 #define BOT_INT_OUT_OF_MEMORY     0x05
 
-typedef unsigned char bot_char;
-typedef unsigned int  bot_uint;
-typedef float         bot_real;
-
-typedef union {
-	bot_uint uint;
-	bot_real real;
-} bot_word;
+typedef unsigned char      bot_char;
+typedef unsigned int       bot_uint;
+typedef unsigned long long bot_long;
 
 typedef struct {
 	bot_uint  INT;
 	bot_uint  PC;
 	bot_uint  SP;
-	bot_uint  rom_size;
 	bot_uint  mem_size;
+	bot_uint  rom_size;
+	bot_uint *mem;
 	bot_char *rom;
-	bot_word *mem;
 } bot_vm;
 
 typedef struct {
 	void      *user;
-	bot_char (*read)(void *user);
 	bot_uint (*size)(void *user);
+	bot_char (*read)(void *user);
 } bot_rom;
 
 bot_vm* bot_vm_new();
@@ -115,17 +121,18 @@ void bot_vm_set_uint(
 	bot_uint value
 );
 
-void bot_vm_set_real(
-	bot_vm  *vm,
-	bot_uint address,
-	bot_real value
-);
-
-void bot_vm_set_string(
+void bot_vm_set_uint_array(
 	bot_vm  *vm,
 	bot_uint address,
 	bot_uint length,
-	char    *buffer
+	bot_uint values[]
+);
+
+void bot_vm_set_string(
+	bot_vm   *vm,
+	bot_uint  address,
+	bot_uint  length,
+	bot_char *buffer
 );
 
 bot_uint bot_vm_get_uint(
@@ -133,16 +140,18 @@ bot_uint bot_vm_get_uint(
 	bot_uint address
 );
 
-bot_real bot_vm_get_real(
-	bot_vm  *vm,
-	bot_uint address
-);
-
-void bot_vm_get_string(
+void bot_vm_get_uint_array(
 	bot_vm  *vm,
 	bot_uint address,
 	bot_uint length,
-	char    *buffer
+	bot_uint values[]
+);
+
+void bot_vm_get_string(
+	bot_vm   *vm,
+	bot_uint  address,
+	bot_uint  length,
+	bot_char *buffer
 );
 
 void bot_vm_push_uint(
@@ -150,29 +159,20 @@ void bot_vm_push_uint(
 	bot_uint value
 );
 
-void bot_vm_push_real(
-	bot_vm  *vm,
-	bot_real value
-);
-
 void bot_vm_push_string(
-	bot_vm  *vm,
-	bot_uint length,
-	char    *buffer
+	bot_vm   *vm,
+	bot_uint  length,
+	bot_char *buffer
 );
 
 bot_uint bot_vm_pop_uint(
 	bot_vm *vm
 );
 
-bot_real bot_vm_pop_real(
-	bot_vm *vm
-);
-
 void bot_vm_pop_string(
-	bot_vm  *vm,
-	bot_uint length,
-	char    *buffer
+	bot_vm   *vm,
+	bot_uint  length,
+	bot_char *buffer
 );
 
 void bot_vm_run(
@@ -182,8 +182,6 @@ void bot_vm_run(
 #endif
 
 #ifdef BOT_IMPLEMENTATION
-
-#include <math.h>
 
 #ifndef BOT_MALLOC
 	#include <malloc.h>
@@ -208,13 +206,13 @@ bot_vm* bot_vm_new() {
 	vm->INT      = 0;
 	vm->PC       = 0;
 	vm->SP       = 0;
-	vm->rom_size = 0;
 	vm->mem_size = BOT_MIN_MEM_SIZE;
-	vm->rom      = NULL;
+	vm->rom_size = 0;
 	vm->mem      = BOT_MALLOC(
-		sizeof(bot_word)*
+		sizeof(bot_uint)*
 		BOT_MIN_MEM_SIZE
 	);
+	vm->rom      = NULL;
 
 	return vm;
 }
@@ -265,9 +263,9 @@ bot_uint bot_vm_resize(
 		mem_size = mem_size+(mem_size/2);
 	}
 
-	bot_word *mem = BOT_REALLOC(
+	bot_uint *mem = BOT_REALLOC(
 		vm->mem,
-		mem_size*sizeof(bot_word)
+		mem_size*sizeof(bot_uint)
 	);
 
 	if (mem==NULL) {
@@ -343,15 +341,16 @@ void bot_vm_set_uint(
 		return;
 	}
 
-	vm->mem[address].uint = value;
+	vm->mem[address] = value;
 }
 
-void bot_vm_set_real(
+void bot_vm_set_uint_array(
 	bot_vm  *vm,
 	bot_uint address,
-	bot_real value
+	bot_uint length,
+	bot_uint values[]
 ) {
-	if (address>=vm->SP) {
+	if (address+length>vm->SP) {
 		bot_vm_interrupt(
 			vm,
 			BOT_INT_OUT_OF_BOUNDS
@@ -360,14 +359,16 @@ void bot_vm_set_real(
 		return;
 	}
 
-	vm->mem[address].real = value;
+	for (bot_uint i=0; i<length; i++) {
+		vm->mem[address+i]=values[i];
+	}
 }
 
 void bot_vm_set_string(
-	bot_vm  *vm,
-	bot_uint address,
-	bot_uint length,
-	char    *buffer
+	bot_vm   *vm,
+	bot_uint  address,
+	bot_uint  length,
+	bot_char *buffer
 ) {
 	bot_uint word    = 0;
 	bot_uint padding = 0;
@@ -403,30 +404,34 @@ bot_uint bot_vm_get_uint(
 		return 0;
 	}
 
-	return vm->mem[address].uint;
+	return vm->mem[address];
 }
 
-bot_real bot_vm_get_real(
+void bot_vm_get_uint_array(
 	bot_vm  *vm,
-	bot_uint address
+	bot_uint address,
+	bot_uint length,
+	bot_uint values[]
 ) {
-	if (address>=vm->SP)  {
+	if (address+length>vm->SP) {
 		bot_vm_interrupt(
 			vm,
 			BOT_INT_OUT_OF_BOUNDS
 		);
 
-		return 0;
+		return;
 	}
 
-	return vm->mem[address].real;
+	for (bot_uint i=0; i<length; i++) {
+		values[i]=vm->mem[address+i];
+	}
 }
 
 void bot_vm_get_string(
-	bot_vm  *vm,
-	bot_uint address,
-	bot_uint length,
-	char    *buffer
+	bot_vm   *vm,
+	bot_uint  address,
+	bot_uint  length,
+	bot_char *buffer
 ) {
 	bot_uint word = 0;
 	address      += (length-1)/sizeof(bot_uint);
@@ -449,18 +454,10 @@ void bot_vm_push_uint(
 	bot_vm_set_uint(vm,vm->SP-1,value);
 }
 
-void bot_vm_push_real(
-	bot_vm  *vm,
-	bot_real value
-) {
-	bot_vm_hop(vm,vm->SP+1);
-	bot_vm_set_real(vm,vm->SP-1,value);
-}
-
 void bot_vm_push_string(
-	bot_vm  *vm,
-	bot_uint length,
-	char    *buffer
+	bot_vm   *vm,
+	bot_uint  length,
+	bot_char *buffer
 ) {
 	bot_uint address = vm->SP;
 	bot_uint words   = (
@@ -480,25 +477,22 @@ void bot_vm_push_string(
 bot_uint bot_vm_pop_uint(
 	bot_vm *vm
 ) {
-	bot_uint value=bot_vm_get_uint(vm,vm->SP-1);
-	bot_vm_hop(vm,vm->SP-1);
+	if (vm->SP==0) {
+		bot_vm_interrupt(
+			vm,
+			BOT_INT_OUT_OF_BOUNDS
+		);
 
-	return value;
-}
+		return 0;
+	}
 
-bot_real bot_vm_pop_real(
-	bot_vm *vm
-) {
-	bot_real value=bot_vm_get_real(vm,vm->SP-1);
-	bot_vm_hop(vm,vm->SP-1);
-
-	return value;
+	return vm->mem[--vm->SP];
 }
 
 void bot_vm_pop_string(
-	bot_vm  *vm,
-	bot_uint length,
-	char    *buffer
+	bot_vm   *vm,
+	bot_uint  length,
+	bot_char *buffer
 ) {
 	bot_uint words   = (
 		(length+sizeof(bot_uint)-1)/
@@ -515,32 +509,30 @@ void bot_vm_pop_string(
 	bot_vm_hop(vm,address);
 }
 
-#define INT_SET(I) INT = I;
+#define VSET(R,L) R = L;
 
-#define REG_SET(R,L) R = L;
-
-#define ROM_JMP(I) { \
+#define RJMP(I) { \
 if (I>rom_size) { \
 	INT = BOT_INT_INVALID_JUMP; break; \
 } else { \
 	PC = I; \
 }}
 
-#define ROM_JMC(I,V) { \
+#define RJMC(I,V) { \
 if (I>rom_size) { \
 	INT = BOT_INT_INVALID_JUMP; break; \
 } else if (V) { \
 	PC = I; \
 }}
 
-#define ROM_POP(V) { \
+#define RPOP(V) { \
 if (PC>=rom_size) { \
 	INT = BOT_INT_END_OF_PROGRAM; break; \
 } else { \
 	V = rom[PC++]; \
 }}
 
-#define ROM_POP2(V) { \
+#define RPO2(V) { \
 if (PC+1>=rom_size) { \
 	INT = BOT_INT_END_OF_PROGRAM; break; \
 } else { \
@@ -551,7 +543,7 @@ if (PC+1>=rom_size) { \
 	PC += 2; \
 }}
 
-#define ROM_POP3(V) { \
+#define RPO3(V) { \
 if (PC+2>=rom_size) { \
 	INT = BOT_INT_END_OF_PROGRAM; break; \
 } else { \
@@ -563,7 +555,7 @@ if (PC+2>=rom_size) { \
 	PC += 3; \
 }}
 
-#define ROM_POP4(V) { \
+#define RPO4(V) { \
 if (PC+3>=rom_size) { \
 	INT = BOT_INT_END_OF_PROGRAM; break; \
 } else { \
@@ -576,7 +568,7 @@ if (PC+3>=rom_size) { \
 	PC += 4; \
 }}
 
-#define MEM_PUT(V) { \
+#define MPUT(V) { \
 if ( \
 	SP>=mem_size && \
 	!bot_vm_resize(vm,SP+1) \
@@ -588,14 +580,14 @@ if ( \
 	mem[SP++] = V; \
 }}
 
-#define MEM_POP(V) { \
+#define MPOP(V) { \
 if (SP==0) { \
 	INT = BOT_INT_OUT_OF_BOUNDS; break; \
 } else { \
 	V = mem[--SP]; \
 }}
 
-#define MEM_HOP(I) { \
+#define MHOP(I) { \
 if ( \
 	I>=mem_size && \
 	!bot_vm_resize(vm,I+1) \
@@ -607,18 +599,31 @@ if ( \
 	mem_size = vm->mem_size; \
 }}
 
-#define MEM_SET(I,V) { \
+#define MSET(I,V) { \
 if (I>=SP) { \
 	INT = BOT_INT_OUT_OF_BOUNDS; break; \
 } else { \
 	mem[I]=V; \
 }}
 
-#define MEM_GET(I,V) { \
+#define MSE2(I,V) { \
+if (I+1>=SP) { \
+	INT = BOT_INT_OUT_OF_BOUNDS; break; \
+} else { \
+	mem[I]   = V>>32; \
+	mem[I+1] = V&0xFFFFFFFF; \
+}}
+
+#define MGET(I,V) { \
 if (I>=SP) { \
 	INT = BOT_INT_OUT_OF_BOUNDS; break; \
 } else { \
 	V = mem[I]; \
+}}
+
+#define TEST(S,E) { \
+if (S) { \
+	E \
 }}
 
 void bot_vm_run(
@@ -627,312 +632,53 @@ void bot_vm_run(
 	bot_uint mem_size = vm->mem_size;
 	bot_uint rom_size = vm->rom_size;
 
-	bot_word *mem = vm->mem;
+	bot_uint *mem = vm->mem;
 	bot_char *rom = vm->rom;
 
 	bot_uint INT = vm->INT;
 	bot_uint PC  = vm->PC;
 	bot_uint SP  = vm->SP;
 
+	bot_uint A,B,C;
+	bot_long E,F,G;
+
 	while (INT==BOT_INT_NONE) {
-		bot_word A,B,C;
+		RPOP(A);
 
-		ROM_POP(A.uint);
-
-		switch(A.uint) {
-			case BOT_OP_INT:
-				MEM_POP(A);
-				INT_SET(A.uint);
-
-				break;
-			case BOT_OP_NUM:
-				REG_SET(A.uint,0);
-				MEM_PUT(A);
-
-				break;
-			case BOT_OP_NUM+1:
-				ROM_POP(A.uint);
-				MEM_PUT(A);
-
-				break;
-			case BOT_OP_NUM+2:
-				ROM_POP2(A.uint);
-				MEM_PUT(A);
-
-				break;
-			case BOT_OP_NUM+3:
-				ROM_POP3(A.uint);
-				MEM_PUT(A);
-
-				break;
-			case BOT_OP_NUM+4:
-				ROM_POP4(A.uint);
-				MEM_PUT(A);
-
-				break;
-			case BOT_OP_JMP:
-				MEM_POP(A);
-				ROM_JMP(A.uint);
-
-				break;
-			case BOT_OP_JMC:
-				MEM_POP(B);
-				MEM_POP(A);
-				ROM_JMC(B.uint,A.uint);
-
-				break;
-			case BOT_OP_CEQ:
-				MEM_POP(B);
-				MEM_GET(SP-1,A);
-				REG_SET(C.uint,A.uint==B.uint);
-				MEM_SET(SP-1,C);
-
-				break;
-			case BOT_OP_CNE:
-				MEM_POP(B);
-				MEM_GET(SP-1,A);
-				REG_SET(C.uint,A.uint!=B.uint);
-				MEM_SET(SP-1,C);
-
-				break;
-			case BOT_OP_CLS:
-				MEM_POP(B);
-				MEM_GET(SP-1,A);
-				REG_SET(C.uint,A.uint<B.uint);
-				MEM_SET(SP-1,C);
-
-				break;
-			case BOT_OP_CLE:
-				MEM_POP(B);
-				MEM_GET(SP-1,A);
-				REG_SET(C.uint,A.uint<=B.uint);
-				MEM_SET(SP-1,C);
-
-				break;
-			case BOT_OP_HOP:
-				MEM_POP(A);
-				MEM_HOP(A.uint);
-
-				break;
-			case BOT_OP_POS:
-				REG_SET(A.uint,SP);
-				MEM_PUT(A);
-
-				break;
-			case BOT_OP_SET:
-				MEM_POP(B);
-				MEM_POP(A);
-				MEM_SET(B.uint,A);
-
-				break;
-			case BOT_OP_GET:
-				MEM_GET(SP-1,A);
-				MEM_GET(A.uint,B);
-				MEM_SET(SP-1,B);
-
-				break;
-			case BOT_OP_DUP:
-				MEM_GET(SP-1,A);
-				MEM_PUT(A);
-
-				break;
-			case BOT_OP_POP:
-				MEM_POP(A);
-
-				break;
-			case BOT_OP_ROT:
-				MEM_GET(SP-2,A);
-				MEM_GET(SP-1,B);
-				MEM_SET(SP-2,B);
-				MEM_SET(SP-1,A);
-
-				break;
-			case BOT_OP_ADD:
-				MEM_POP(B);
-				MEM_GET(SP-1,A);
-				REG_SET(C.uint,A.uint+B.uint);
-				MEM_SET(SP-1,C);
-
-				break;
-			case BOT_OP_SUB:
-				MEM_POP(B);
-				MEM_GET(SP-1,A);
-				REG_SET(C.uint,A.uint-B.uint);
-				MEM_SET(SP-1,C);
-
-				break;
-			case BOT_OP_MUL:
-				MEM_POP(B);
-				MEM_GET(SP-1,A);
-				REG_SET(C.uint,A.uint*B.uint);
-				MEM_SET(SP-1,C);
-
-				break;
-			case BOT_OP_DIV:
-				MEM_POP(B);
-				MEM_GET(SP-1,A);
-				REG_SET(C.uint,A.uint/B.uint);
-				MEM_SET(SP-1,C);
-
-				break;
-			case BOT_OP_POW:
-				MEM_POP(B);
-				MEM_GET(SP-1,A);
-
-				for (
-					C.uint=1;
-					B.uint>0;
-					B.uint--
-				) {
-					REG_SET(C.uint,C.uint*A.uint);
-				}
-
-				MEM_SET(SP-1,C);
-
-				break;
-			case BOT_OP_MOD:
-				MEM_POP(B);
-				MEM_GET(SP-1,A);
-				REG_SET(C.uint,A.uint%B.uint);
-				MEM_SET(SP-1,C);
-
-				break;
-			case BOT_OP_NOT:
-				MEM_GET(SP-1,A);
-				REG_SET(A.uint,~A.uint);
-				MEM_SET(SP-1,A);
-
-				break;
-			case BOT_OP_AND:
-				MEM_POP(B);
-				MEM_GET(SP-1,A);
-				REG_SET(C.uint,A.uint&B.uint);
-				MEM_SET(SP-1,C);
-
-				break;
-			case BOT_OP_BOR:
-				MEM_POP(B);
-				MEM_GET(SP-1,A);
-				REG_SET(C.uint,A.uint|B.uint);
-				MEM_SET(SP-1,C);
-
-				break;
-			case BOT_OP_XOR:
-				MEM_POP(B);
-				MEM_GET(SP-1,A);
-				REG_SET(C.uint,A.uint^B.uint);
-				MEM_SET(SP-1,C);
-
-				break;
-			case BOT_OP_LSH:
-				MEM_POP(B);
-				MEM_GET(SP-1,A);
-				REG_SET(C.uint,A.uint<<B.uint);
-				MEM_SET(SP-1,C);
-
-				break;
-			case BOT_OP_RSH:
-				MEM_POP(B);
-				MEM_GET(SP-1,A);
-				REG_SET(C.uint,A.uint>>B.uint);
-				MEM_SET(SP-1,C);
-
-				break;
-			case BOT_OP_FPU:
-				REG_SET(A.real,0);
-				MEM_PUT(A);
-
-				break;
-			case BOT_OP_FPU+4:
-				ROM_POP4(A.uint);
-				REG_SET(A.real,(bot_real)A.uint/65536-32768);
-				MEM_PUT(A);
-
-				break;
-			case BOT_OP_FTU:
-				MEM_GET(SP-1,A);
-				REG_SET(A.uint,(bot_uint)A.real);
-				MEM_SET(SP-1,A);
-
-				break;
-			case BOT_OP_UTF:
-				MEM_GET(SP-1,A);
-				REG_SET(A.real,(bot_real)A.uint);
-				MEM_SET(SP-1,A);
-
-				break;
-			case BOT_OP_FEQ:
-				MEM_POP(B);
-				MEM_GET(SP-1,A);
-				REG_SET(C.uint,A.real==B.real);
-				MEM_SET(SP-1,C);
-
-				break;
-			case BOT_OP_FNE:
-				MEM_POP(B);
-				MEM_GET(SP-1,A);
-				REG_SET(C.uint,A.real!=B.real);
-				MEM_SET(SP-1,C);
-
-				break;
-			case BOT_OP_FLS:
-				MEM_POP(B);
-				MEM_GET(SP-1,A);
-				REG_SET(C.uint,A.real<B.real);
-				MEM_SET(SP-1,C);
-
-				break;
-			case BOT_OP_FLE:
-				MEM_POP(B);
-				MEM_GET(SP-1,A);
-				REG_SET(C.uint,A.real<=B.real);
-				MEM_SET(SP-1,C);
-
-				break;
-			case BOT_OP_FAD:
-				MEM_POP(B);
-				MEM_GET(SP-1,A);
-				REG_SET(C.real,A.real+B.real);
-				MEM_SET(SP-1,C);
-
-				break;
-			case BOT_OP_FSU:
-				MEM_POP(B);
-				MEM_GET(SP-1,A);
-				REG_SET(C.real,A.real-B.real);
-				MEM_SET(SP-1,C);
-
-				break;
-			case BOT_OP_FMU:
-				MEM_POP(B);
-				MEM_GET(SP-1,A);
-				REG_SET(C.real,A.real*B.real);
-				MEM_SET(SP-1,C);
-
-				break;
-			case BOT_OP_FDI:
-				MEM_POP(B);
-				MEM_GET(SP-1,A);
-				REG_SET(C.real,A.real/B.real);
-				MEM_SET(SP-1,C);
-
-				break;
-			case BOT_OP_FPO:
-				MEM_POP(B);
-				MEM_GET(SP-1,A);
-				REG_SET(C.real,powf(A.real,B.real));
-				MEM_SET(SP-1,C);
-
-				break;
-			case BOT_OP_FMO:
-				MEM_POP(B);
-				MEM_GET(SP-1,A);
-				REG_SET(C.real,fmod(A.real,B.real));
-				MEM_SET(SP-1,C);
-
-				break;
-			default:
-				INT_SET(BOT_INT_INVALID_OPERATION);
+		switch(A) {
+			case BOT_OP_NOP:                                                             break;
+			case BOT_OP_INT:   MPOP(A);      VSET(INT,A);                                break;
+			case BOT_OP_NUM:   VSET(A,0);    MPUT(A);                                    break;
+			case BOT_OP_NUM+1: RPOP(A);      MPUT(A);                                    break;
+			case BOT_OP_NUM+2: RPO2(A);      MPUT(A);                                    break;
+			case BOT_OP_NUM+3: RPO3(A);      MPUT(A);                                    break;
+			case BOT_OP_NUM+4: RPO4(A);      MPUT(A);                                    break;
+			case BOT_OP_JMP:   MPOP(A);      RJMP(A);                                    break;
+			case BOT_OP_JMC:   MPOP(B);      MPOP(A);       RJMC(B,A);                   break;
+			case BOT_OP_CEQ:   MPOP(B);      MGET(SP-1,A);  VSET(C,A==B);  MSET(SP-1,C); break;
+			case BOT_OP_CNE:   MPOP(B);      MGET(SP-1,A);  VSET(C,A!=B);  MSET(SP-1,C); break;
+			case BOT_OP_CLS:   MPOP(B);      MGET(SP-1,A);  VSET(C,A<B);   MSET(SP-1,C); break;
+			case BOT_OP_CLE:   MPOP(B);      MGET(SP-1,A);  VSET(C,A<=B);  MSET(SP-1,C); break;
+			case BOT_OP_HOP:   MPOP(A);      MHOP(A);                                    break;
+			case BOT_OP_POS:   VSET(A,SP);   MPUT(A);                                    break;
+			case BOT_OP_SET:   MPOP(B);      MPOP(A);       MSET(B,A);                   break;
+			case BOT_OP_GET:   MGET(SP-1,A); MGET(A,B);     MSET(SP-1,B);                break;
+			case BOT_OP_POP:   MPOP(A);                                                  break;
+			case BOT_OP_ROT:   MGET(SP-2,A); MGET(SP-1,B);  MSET(SP-2,B);  MSET(SP-1,A); break;
+			case BOT_OP_ADD:   MPOP(B);      MGET(SP-1,A);  VSET(C,A+B);   MSET(SP-1,C); break;
+			case BOT_OP_SUB:   MPOP(B);      MGET(SP-1,A);  VSET(C,A-B);   MSET(SP-1,C); break;
+			case BOT_OP_MUL:   MGET(SP-1,F); MGET(SP-2,E);  VSET(G,E*F);   MSE2(SP-2,G); break;
+			case BOT_OP_DIV:   MPOP(B);      MGET(SP-1,A);  VSET(C,A/B);   MSET(SP-1,C); break;
+			case BOT_OP_MOD:   MPOP(B);      MGET(SP-1,A);  VSET(C,A%B);   MSET(SP-1,C); break;
+			case BOT_OP_MIN:   MGET(SP-2,A); MGET(SP-1,B);
+			                   TEST(B<A,     MSET(SP-2,B);  MSET(SP-1,A);)               break;
+			case BOT_OP_NOT:   MGET(SP-1,A); VSET(A,~A);    MSET(SP-1,A);                break;
+			case BOT_OP_AND:   MPOP(B);      MGET(SP-1,A);  VSET(C,A&B);   MSET(SP-1,C); break;
+			case BOT_OP_BOR:   MPOP(B);      MGET(SP-1,A);  VSET(C,A|B);   MSET(SP-1,C); break;
+			case BOT_OP_XOR:   MPOP(B);      MGET(SP-1,A);  VSET(C,A^B);   MSET(SP-1,C); break;
+			case BOT_OP_LSH:   MPOP(B);      MGET(SP-1,A);  VSET(C,A<<B);  MSET(SP-1,C); break;
+			case BOT_OP_RSH:   MPOP(B);      MGET(SP-1,A);  VSET(C,A>>B);  MSET(SP-1,C); break;
+			default:           VSET(INT,BOT_INT_INVALID_OPERATION);
 		}
 	}
 
@@ -941,18 +687,19 @@ void bot_vm_run(
 	vm->SP  = SP;
 }
 
-#undef INT_SET
-#undef REG_SET
-#undef ROM_JMP
-#undef ROM_JMC
-#undef ROM_POP
-#undef ROM_POP2
-#undef ROM_POP3
-#undef ROM_POP4
-#undef MEM_PUT
-#undef MEM_POP
-#undef MEM_HOP
-#undef MEM_SET
-#undef MEM_GET
+#undef VSET
+#undef RJMP
+#undef RJMC
+#undef RPOP
+#undef RPO2
+#undef RPO3
+#undef RPO4
+#undef MPUT
+#undef MPOP
+#undef MHOP
+#undef MSET
+#undef MSE2
+#undef MGET
+#undef TEST
 
 #endif

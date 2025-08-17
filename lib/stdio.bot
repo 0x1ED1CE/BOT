@@ -1,0 +1,18 @@
+mac "term_input", "num 0x0A int"
+mac "term_print", "num 0x0B int"
+mac "term_input", "num 0x0C int"
+mac "term_debug", "num 0x0D int"
+mac "file_open",  "num 0x0E int"
+mac "file_close", "num 0x0F int"
+mac "file_read",  "num 0x10 int"
+mac "file_write", "num 0x11 int"
+mac "file_seek",  "num 0x12 int"
+mac "file_head",  "num 0x13 int"
+mac "file_size",  "num 0x14 int"
+
+mac "print",
+	"pos gbl '__temp' set "
+	"string @0 0 "
+	"gbl '__temp' get "
+	"term_print "
+	"gbl '__temp' get hop"

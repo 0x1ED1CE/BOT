@@ -1,0 +1,58 @@
+mac "printnum", "call 'printnum' pop"
+
+sec "printnum"
+	rem "Get unsigned value"
+	mac "v_abs", "var 0"
+	arg 0 get abs
+
+	rem "Print sign"
+	arg 0 get sign
+	ifnot
+		print "-"
+	end
+
+	rem "Print integer"
+	v_abs get ftu
+	term_debug
+
+	rem "Print fraction"
+	print "."
+	v_abs get
+	fix 1,0
+	fmo
+	fix 0,0001
+	fad
+	fix 10000,0
+	fmu
+	ftu
+	term_debug
+	print 10
+
+	ret
+
+sec "main"
+	print "123.4567 + 42.69    = "
+	fix 123,4567
+	fix 42,6900
+	fad
+	printnum
+
+	print "42.69    - 123.4567 = "
+	fix 42,6900
+	fix 123,4567
+	fsu
+	printnum
+
+	print "123.4567 * 42.69    = "
+	fix 123,4567
+	fix 42,6900
+	fmu
+	printnum
+
+	print "123.4567 / 42.69    = "
+	fix 123,4567
+	fix 42,6900
+	fdi
+	printnum
+
+	ret

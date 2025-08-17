@@ -1,0 +1,26 @@
+mac "string",
+	"num #0, @0"
+
+sec "string.set"
+	push 3
+
+	mac "var_char",   "var 1"
+	mac "var_index",  "var 2"
+	mac "var_string", "var 3"
+
+	ret
+
+sec "string.get"
+	ret
+
+sec "string.from_num"
+
+	ret
+
+sec "string.to_num"
+
+	ret
+
+sec "string.format"
+
+	ret

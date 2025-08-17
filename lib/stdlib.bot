@@ -1,0 +1,67 @@
+rem "Interrupts"
+mac "halt",
+	"num 0x01 int"
+
+rem "Fused operations"
+mac "max", "min rot"
+mac "cgr", "rot cls"
+mac "cge", "rot cle"
+mac "inc", "num 1 add"
+mac "dec", "num 1 sub"
+mac "dup", "pos num 1 sub get"
+
+rem "Allocation"
+mac "push",
+	"pos num @0 add hop"
+
+mac "drop",
+	"pos num @0 sub hop"
+
+rem "Control flow"
+mac "if",
+	"num 0 ceq rec jmc"
+
+mac "ifnot",
+	"rec jmc"
+
+mac "end",
+	"sec"
+
+mac "rep",
+	"rec 'for_' @0 jmp"
+
+mac "goto",
+	"rec @0 jmp"
+
+rem "Subroutine"
+mac "run",
+	"gbl '__sp' get rot "
+	"pos gbl '__sp' set "
+	"rec rot jmp sec "
+	"gbl '__sp' set"
+
+mac "call",
+	"gbl '__sp' get rec "
+	"pos gbl '__sp' set "
+	"rec @0 jmp sec "
+	"gbl '__sp' set"
+
+mac "ret",
+	"gbl '__sp' get hop jmp "
+
+mac "var",
+	"gbl '__sp' get num @0 add"
+
+mac "arg",
+	"gbl '__sp' get num @0 3 + sub"
+
+rem "Initialization entry"
+sec "__init"
+	rem "Call main function"
+	call "main"
+
+	rem "Halt interrupt request"
+	halt
+rem "Should NEVER reach this"
+sec "__init_end"
+	rec "__init_end" jmp

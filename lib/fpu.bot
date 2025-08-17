@@ -1,0 +1,67 @@
+mac "fix",  "num @0 16 < @1 16 < 10000 / |"
+mac "nix",  "num @0 16 < @1 16 < 10000 / | ~ 1 +"
+mac "ftu",  "num 16 rsh"
+mac "utf",  "num 16 lsh"
+mac "fad",  "add"
+mac "fsu",  "sub"
+mac "fmu",  "call 'fmu' pop"
+mac "fdi",  "call 'fdi' pop"
+mac "fmo",  "mod"
+mac "neg",  "not num 1 add"
+mac "abs",  "dup sign rec jmc neg sec"
+mac "sign", "num 0x80000000 cls"
+
+sec "fmu"
+	rem "Get unsigned values"
+	arg 1 get abs
+	arg 0 get abs
+
+	rem "Multiply and truncate"
+	mul
+	num 16 rsh
+	rot
+	num 16 lsh
+	bor
+
+	rem "Restore sign"
+	arg 1 get sign
+	arg 0 get sign
+	cne
+	if
+		neg
+	end
+
+	rem "Return result"
+	arg 1 set
+
+	ret
+
+sec "fdi"
+	rem "Get unsigned dividend"
+	arg 1 get abs
+
+	rem "Get reciprocal of divisor"
+	num 0x80000000
+	arg 0 get abs
+	num 1 rsh
+	div
+
+	rem "Perform fixed point multiply"
+	mul
+	num 16 rsh
+	rot
+	num 16 lsh
+	bor
+
+	rem "Restore sign"
+	arg 1 get sign
+	arg 0 get sign
+	cne
+	if
+		neg
+	end
+
+	rem "Return result"
+	arg 1 set
+
+	ret
