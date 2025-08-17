@@ -4,9 +4,9 @@ PROGRAM = bot
 CC      = gcc
 CFLAGS  = -std=gnu99 -Wall -Wextra -Wno-attributes -s -O2
 
-.PHONY: demos
+all: bot demos
 
-all: demos
+bot:
 	$(CC) $(CFLAGS) $(PROGRAM).c -o $(PROGRAM)
 
 demos: hello.bin fixed_point.bin
